@@ -43,7 +43,7 @@ public class LogData
 
 //[ExecuteInEditMode] 
 public class Logs : MonoBehaviour
-{
+{	
 	private static Dictionary<int, bool> _types = new Dictionary<int, bool>();
 	private static LogData.LogSeverity _severity = LogData.LogSeverity.NORMAL;
 	private static string _search_string = "";
@@ -76,7 +76,7 @@ public class Logs : MonoBehaviour
 
 	static void CaptureLog (string condition, string stacktrace, LogType type)
 	{
-		log (condition, 1, (type == LogType.Error)?LogData.LogSeverity.ERROR:LogData.LogSeverity.NORMAL);
+		log (condition, 1, (type == LogType.Error)?LogData.LogSeverity.ERROR:LogData.LogSeverity.NORMAL, stacktrace);
 	}
 
 	public static void SwitchTypes(LogData.LogType type)
@@ -108,30 +108,22 @@ public class Logs : MonoBehaviour
 	}
 	
 	private static List<LogData> logs = new List<LogData>();
-	public static void log(string content, int type = 0, LogData.LogSeverity severity = LogData.LogSeverity.NORMAL)
+	public static void log(string content, int type = 0, LogData.LogSeverity severity = LogData.LogSeverity.NORMAL, string stackTrace = "")
 	{
-		if(Application.platform == RuntimePlatform.IPhonePlayer)
+		if (Debug.isDebugBuild) 
 		{
-			Debug.Log(content);
-		}
-		else
-		{
-			
-			{
-				LogData d = new LogData (content, type, severity);
-				
+			LogData d = new LogData (content, type, severity);
+
+			d.stacktrace = stackTrace;
+			if (string.IsNullOrEmpty(stackTrace))
 				d.stacktrace = StackTraceUtility.ExtractStackTrace ();
-				string[] stackFrames = d.stacktrace.Split (new char[] {'\n'});
-				d.stacktrace = "";
-				for (int i = 1; i < stackFrames.Length; i++)
-				{
-					d.stacktrace += stackFrames[i] + '\n';
-				}
-				logs.Add (d);
-				
-				if (severity == LogData.LogSeverity.ERROR) {
-				}
+			string[] stackFrames = d.stacktrace.Split (new char[] {'\n'});
+			d.stacktrace = "";
+			for (int i = 1; i < stackFrames.Length; i++)
+			{
+				d.stacktrace += stackFrames[i] + '\n';
 			}
+			logs.Add (d);
 		}
 	}
 

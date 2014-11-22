@@ -6,12 +6,14 @@ using System.Reflection;
 
 public class UIDLogBase
 {
+	public delegate void OpenFileHandler(string GUIContent);
+	public OpenFileHandler openFileHandler;
 
 	public Vector2 size = new Vector2( 32 , 32 ) ;
 	public int selected_index = -1;
 	Vector2 scrollPosition = Vector2.zero;
 	Vector2 scrollPosition2 = Vector2.zero;
-	float lastClick = 0;
+	public float lastClick = 0;
 	int menu_height = 0;
 
 	GUIContent clearContent;
@@ -23,9 +25,7 @@ public class UIDLogBase
 
 	public UIDLogBase(bool active = true)
 	{
-		this.active = active;
-
-		EditorApplication.playmodeStateChanged = OnPlayModeChanged;
+		this.active = active;		
 
 		clearContent 	= new GUIContent("",getImage("dlog_clear",size.x,size.y),"Clear logs");
      	searchContent 	= new GUIContent("",getImage("dlog_search",size.x*2,size.y),"search logs");
@@ -122,14 +122,6 @@ public class UIDLogBase
 		btnSelectedStyle.fontSize = 12;
 	}
 
-	void OnPlayModeChanged()
-	{
-		if (!EditorApplication.isPlaying) {
-			lastClick = 0;
-			lastClick_stack = 0;
-		}
-	}
-
 	Texture2D getImage(string path , float width , float height )
 	{
 		Texture2D texture =  ( Texture2D  )Resources.Load( path , typeof(Texture2D  ));
@@ -137,6 +129,7 @@ public class UIDLogBase
 	}
 
 	public bool active = false;
+	
 	void OnGUIToolbar()
 	{
 		GUILayout.BeginHorizontal( active?barStyle:nonStyle );
@@ -200,7 +193,7 @@ public class UIDLogBase
 	Texture2D logIcon;
 	Texture2D logErrorIcon;
 	int stackHeight = 224;
-	float lastClick_stack = 0;
+	public float lastClick_stack = 0;
 	float lastScrollEndPos = 0;
 	void OnGUILog()
 	{
@@ -242,7 +235,9 @@ public class UIDLogBase
 			if( GUILayout.Button( "" , btnStyle ) )
 			{
 				if(Time.realtimeSinceStartup-lastClick<0.2){
-					OpenFile(logs[i].stacktrace);
+					//OpenFile(logs[i].stacktrace);
+					if (openFileHandler != null)
+						openFileHandler (logs [i].stacktrace);
 				}else{
 					selected_index = i;
 					selected_stack = -1;
@@ -277,44 +272,6 @@ public class UIDLogBase
 		OnGUIStack (Logs.LogsData);
 
 		//NGUIEditorTools.DrawSeparator ();
-	}
-
-	private static bool SplitLog(string source, ref string path, ref int line_no)
-	{
-		string[] splitLog = source.Split (':');		
-		if (splitLog.Length < 3)
-			return false;
-
-		int no = splitLog [1].IndexOf ("(at");		
-		path = splitLog [1].Substring (no + 3).Trim();		
-		line_no = int.Parse (splitLog[2].Substring(0, splitLog[2].IndexOf(')')));
-
-		return true;
-	}
-
-	private static void OpenFile(string stackframe)
-	{
-		Assembly assembly = Assembly.GetAssembly(typeof(UnityEditor.SceneView));
-		//UnityEditorInternal.InternalEditorUtility.OpenFileAtLineExternal
-		System.Type type = assembly.GetType("UnityEditorInternal.InternalEditorUtility");
-		if(type == null)
-		{
-			UnityEngine.Debug.Log("Failed to open source file");
-			return;
-		}
-
-		string callingFrame = stackframe;
-
-		string filename = "";
-		int linenumber = 0;
-		if (!SplitLog (callingFrame, ref filename, ref linenumber))
-			return;
-
-		MethodInfo method = type.GetMethod("OpenFileAtLineExternal");
-		method.Invoke(method, new object[] { 
-			@filename,
-			linenumber 
-		});
 	}
 
 	Rect stackRect = new Rect();
@@ -386,7 +343,9 @@ public class UIDLogBase
 				if( GUILayout.Button( splitLog[i] , btnStyle2 ) )
 				{
 					if(Time.realtimeSinceStartup-lastClick_stack<0.2){
-						OpenFile(splitLog[i]);				
+						if (openFileHandler != null)
+							openFileHandler (splitLog [i]);
+						//OpenFile(splitLog[i]);				
 					}else{
 						selected_stack = i;
 					}
