@@ -47,6 +47,7 @@ public class Logs : MonoBehaviour
 	private static Dictionary<int, bool> _types = new Dictionary<int, bool>();
 	private static LogData.LogSeverity _severity = LogData.LogSeverity.NORMAL;
 	private static string _search_string = "";
+	public static bool capturelog = false;
 
 	static Logs()
 	{
@@ -71,7 +72,8 @@ public class Logs : MonoBehaviour
 			int r = PlayerPrefs.GetInt("unity.log.type_" + i);
 			_types.Add(i, r==1);
 		}
-		Application.RegisterLogCallback (new Application.LogCallback (CaptureLog));
+		if (capturelog)
+			Application.RegisterLogCallback (new Application.LogCallback (CaptureLog));
 	}
 
 	static void CaptureLog (string condition, string stacktrace, LogType type)
